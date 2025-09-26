@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 const helmet = require('helmet');
 const morgan = require('morgan');
+require('dotenv').config(); // Load environment variables first
 
 // --- Route Imports ---
 const authRoutes = require('./routes/authRoutes');
@@ -20,27 +21,30 @@ const leadRoutes = require('./routes/leadRoutes');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = 5001;
+const PORT = process.env.PORT || 5001;
 
-// --- Hardcoded CORS Setup ---
+// --- CORS Configuration ---
 const allowedOrigins = [
-  'https://myindustryhouse.com', // production frontend
-  'https://myindustryhouse.com'         // optional for local dev
+  'https://myindustryhouse.com',
+  // For local testing, uncomment:
+  // 'http://localhost:3000'
 ];
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // allow mobile apps or curl
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('Not allowed by CORS'), false);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // Allow mobile apps or server-to-server
+    if (!allowedOrigins.includes(origin)) {
+      const msg = 'The CORS policy does not allow access from this Origin.';
+      return callback(new Error(msg), false);
     }
-    callback(null, true);
+    return callback(null, true);
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
 
 // --- Middleware ---
 app.use(helmet());
@@ -49,11 +53,7 @@ app.use(morgan('dev'));
 
 // --- Socket.IO Setup ---
 const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+  cors: corsOptions
 });
 
 let userSockets = {};
@@ -79,52 +79,46 @@ io.on('connection', (socket) => {
         break;
       }
     }
+    console.log('A user disconnected:', socket.id);
   });
 });
 
 // --- Database Connection ---
 const connectDB = async () => {
   try {
-    await mongoose.connect('your_mongo_connection_string_here'); // hardcoded Mongo URI
-    console.log('MongoDB connected successfully!');
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected successfully!');
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err);
     process.exit(1);
   }
 };
 
-// --- Routes ---
-app.get('/', (req, res) => res.send('Backend is running!'));
+// --- API Routes ---
+app.get('/', (req, res) => res.send('🚀 My Industry House API is running!'));
 
-// Admin routes with Socket.IO access
-app.use('/api/admin', (req, res, next) => {
+app.use((req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
-}, adminRoutes);
+});
 
-// Lead routes with Socket.IO access
-app.use('/api', (req, res, next) => {
-  req.io = io;
-  req.userSockets = userSockets;
-  next();
-}, leadRoutes);
-
-// Other routes
-app.use('/api/sellers', sellerRoutes);
-app.use('/api/buyers', buyerRoutes);
-app.use('/api/account', accountRoutes);
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', productRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', requirementRoutes);
+app.use('/api', leadRoutes);
+app.use('/api/account', accountRoutes);
+app.use('/api/sellers', sellerRoutes);
+app.use('/api/buyers', buyerRoutes);
+app.use('/api/admin', adminRoutes);
 
 // --- Start Server ---
 const startServer = async () => {
   await connectDB();
   server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`✅ Server is live and running on port ${PORT}`);
   });
 };
 
