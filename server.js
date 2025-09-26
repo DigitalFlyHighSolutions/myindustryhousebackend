@@ -1,6 +1,3 @@
-const dotenv = require('dotenv');
-dotenv.config();
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -19,21 +16,20 @@ const accountRoutes = require('./routes/accountRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const buyerRoutes = require('./routes/buyerRoutes');
 const requirementRoutes = require('./routes/requirementRoutes');
-const leadRoutes = require('./routes/leadRoutes'); // ✅ NEW: Import lead routes
+const leadRoutes = require('./routes/leadRoutes');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 5001;
+const PORT = 5001;
 
-// --- CORS Setup ---
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [process.env.FRONTEND_URL]
-  : ['http://localhost:3000'];
+// --- Hardcoded CORS Setup ---
+const allowedOrigins = [      
+  'https://myindustryhouse.com'  // production
+];
 
 app.use(cors({
   origin: function(origin, callback){
-    // allow requests with no origin (like mobile apps or curl requests)
-    if(!origin) return callback(null, true);
+    if(!origin) return callback(null, true); // allow mobile apps, curl
     if(allowedOrigins.indexOf(origin) === -1){
       const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
       return callback(new Error(msg), false);
@@ -45,20 +41,23 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Handle preflight requests
 app.options('*', cors());
 
 // --- Middleware ---
 app.use(helmet());
 app.use(express.json());
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+app.use(morgan('dev'));
 
-// --- Socket.io Setup ---
+// --- Socket.IO Setup ---
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: function(origin, callback){
+      if(!origin) return callback(null, true);
+      if(allowedOrigins.indexOf(origin) === -1){
+        return callback(new Error('Not allowed by CORS'), false);
+      }
+      callback(null, true);
+    },
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -93,7 +92,7 @@ io.on('connection', (socket) => {
 // --- Database Connection ---
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect('your_mongo_connection_string_here'); // hardcoded
     console.log('MongoDB connected successfully!');
   } catch (err) {
     console.error('MongoDB connection error:', err);
@@ -104,21 +103,18 @@ const connectDB = async () => {
 // --- Routes ---
 app.get('/', (req, res) => res.send('Backend is running!'));
 
-// Admin routes with io
 app.use('/api/admin', (req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
 }, adminRoutes);
 
-// Lead routes with io
 app.use('/api', (req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
 }, leadRoutes);
 
-// Other routes
 app.use('/api/sellers', sellerRoutes);
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/account', accountRoutes);
