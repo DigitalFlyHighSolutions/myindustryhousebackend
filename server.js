@@ -23,22 +23,21 @@ const server = http.createServer(app);
 const PORT = 5001;
 
 // --- Hardcoded CORS Setup ---
-const allowedOrigins = [      
-  'https://myindustryhouse.com'  // production
+const allowedOrigins = [
+  'https://myindustryhouse.com', // production frontend
+  'https://myindustryhouse.com'         // optional for local dev
 ];
 
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true); // allow mobile apps, curl
-    if(allowedOrigins.indexOf(origin) === -1){
-      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
-      return callback(new Error(msg), false);
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // allow mobile apps or curl
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('Not allowed by CORS'), false);
     }
-    return callback(null, true);
+    callback(null, true);
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true,
-  optionsSuccessStatus: 200
+  credentials: true
 }));
 
 app.options('*', cors());
@@ -51,13 +50,7 @@ app.use(morgan('dev'));
 // --- Socket.IO Setup ---
 const io = new Server(server, {
   cors: {
-    origin: function(origin, callback){
-      if(!origin) return callback(null, true);
-      if(allowedOrigins.indexOf(origin) === -1){
-        return callback(new Error('Not allowed by CORS'), false);
-      }
-      callback(null, true);
-    },
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -92,7 +85,7 @@ io.on('connection', (socket) => {
 // --- Database Connection ---
 const connectDB = async () => {
   try {
-    await mongoose.connect('your_mongo_connection_string_here'); // hardcoded
+    await mongoose.connect('your_mongo_connection_string_here'); // hardcoded Mongo URI
     console.log('MongoDB connected successfully!');
   } catch (err) {
     console.error('MongoDB connection error:', err);
@@ -103,18 +96,21 @@ const connectDB = async () => {
 // --- Routes ---
 app.get('/', (req, res) => res.send('Backend is running!'));
 
+// Admin routes with Socket.IO access
 app.use('/api/admin', (req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
 }, adminRoutes);
 
+// Lead routes with Socket.IO access
 app.use('/api', (req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
 }, leadRoutes);
 
+// Other routes
 app.use('/api/sellers', sellerRoutes);
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/account', accountRoutes);

@@ -102,7 +102,7 @@ exports.forgotPassword = async (req, res) => {
         user.passwordResetToken = resetToken;
         user.passwordResetExpires = Date.now() + 600000; 
         await user.save();
-        const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+        const resetUrl = `https://myindustryhouse.com/reset-password/${resetToken}`;
         await transporter.sendMail({
             from: `"My Industry House" <${process.env.EMAIL_USER}>`,
             to: user.email,
