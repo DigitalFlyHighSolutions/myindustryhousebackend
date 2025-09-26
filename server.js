@@ -1,4 +1,3 @@
-// backend/server.js
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -26,16 +25,30 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
 
-// CORS
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
-    : 'http://localhost:3000',
-  optionsSuccessStatus: 200
-};
+// --- CORS Setup ---
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:3000'];
 
-// Middleware
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: function(origin, callback){
+    // allow requests with no origin (like mobile apps or curl requests)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = `The CORS policy for this site does not allow access from the specified Origin.`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+// Handle preflight requests
+app.options('*', cors());
+
+// --- Middleware ---
 app.use(helmet());
 app.use(express.json());
 if (process.env.NODE_ENV === 'development') {
@@ -45,10 +58,9 @@ if (process.env.NODE_ENV === 'development') {
 // --- Socket.io Setup ---
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production'
-      ? process.env.FRONTEND_URL
-      : "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -78,7 +90,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// DB Connection
+// --- Database Connection ---
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -92,20 +104,21 @@ const connectDB = async () => {
 // --- Routes ---
 app.get('/', (req, res) => res.send('Backend is running!'));
 
+// Admin routes with io
 app.use('/api/admin', (req, res, next) => {
-    req.io = io;
-    req.userSockets = userSockets;
-    next();
+  req.io = io;
+  req.userSockets = userSockets;
+  next();
 }, adminRoutes);
 
-// ✅ NEW: Add io and userSockets to lead routes
+// Lead routes with io
 app.use('/api', (req, res, next) => {
-    req.io = io;
-    req.userSockets = userSockets;
-    next();
+  req.io = io;
+  req.userSockets = userSockets;
+  next();
 }, leadRoutes);
 
-
+// Other routes
 app.use('/api/sellers', sellerRoutes);
 app.use('/api/buyers', buyerRoutes);
 app.use('/api/account', accountRoutes);
@@ -115,8 +128,7 @@ app.use('/api', productRoutes);
 app.use('/api', messageRoutes);
 app.use('/api', requirementRoutes);
 
-
-// --- Server Start ---
+// --- Start Server ---
 const startServer = async () => {
   await connectDB();
   server.listen(PORT, () => {
