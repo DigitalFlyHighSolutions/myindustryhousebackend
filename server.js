@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 5001;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-  'https://myindustryhouse.com',
+  'https://myindustryhouse.com', "https://www.myindustryhouse.com"
   // For local testing, uncomment:
   // 'http://localhost:3000'
 ];
