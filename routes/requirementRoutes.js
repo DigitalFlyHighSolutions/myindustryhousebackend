@@ -6,14 +6,12 @@ const { verifyToken } = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 
-// ✅ FIX: Simplified the route path since '/requirements' is now handled in server.js
-// OLD: /requirements/leads -> NEW: /leads
-router.get('/leads', getAvailableLeads);
+router.get('/requirements/leads', getAvailableLeads);
 
-// ✅ FIX: Simplified all requirement routes
-router.post('/', postRequirement);
-router.get('/', getBuyerRequirements);
-router.get('/:id', getRequirementDetails);
-router.put('/:id/status', updateRequirementStatus);
+router.post('/requirements', postRequirement);
+router.get('/requirements', getBuyerRequirements);
+router.get('/requirements/:id', getRequirementDetails);
+// ✅ NEW: Route to update the status of a requirement
+router.put('/requirements/:id/status', updateRequirementStatus);
 
 module.exports = router;

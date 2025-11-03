@@ -6,13 +6,10 @@ exports.getConversations = async (req, res) => {
     try {
         const { userId } = req.params;
         const conversations = await Conversation.find({ participants: userId })
-            // Fetch role along with name
-            .populate('participants', 'name role')
+            .populate('participants', 'name')
             .populate('product', 'name')
             .populate({
                 path: 'messages',
-                // Also populate sender's role here for the snippet
-                populate: { path: 'sender', select: 'name role' },
                 options: { sort: { createdAt: -1 }, limit: 1 }
             })
             .sort({ updatedAt: -1 });
@@ -32,8 +29,7 @@ exports.getConversationDetail = async (req, res) => {
                 path: 'messages',
                 populate: {
                     path: 'sender',
-                    // MODIFICATION: Fetch the sender's role
-                    select: 'name role'
+                    select: 'name'
                 },
                 options: { sort: { createdAt: 1 } }
             });
@@ -57,10 +53,12 @@ exports.postMessage = async (req, res) => {
     try {
         const { sender, recipient, message, product } = req.body;
         
+        // ✅ MODIFIED: The query to find a conversation is now more flexible
         const query = { participants: { $all: [sender, recipient] } };
         if (product) {
             query.product = product;
         } else {
+            // For seller-to-seller, find a conversation without a product
             query.product = { $exists: false };
         }
         
@@ -84,8 +82,7 @@ exports.postMessage = async (req, res) => {
         conversation.messages.push(newMessage._id);
         await Promise.all([newMessage.save(), conversation.save()]);
 
-        // MODIFICATION: Populate sender role when sending back the new message
-        await newMessage.populate('sender', 'name role');
+        await newMessage.populate('sender', 'name');
 
         res.status(201).json(newMessage);
     } catch (err) {
