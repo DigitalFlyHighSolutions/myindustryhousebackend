@@ -2,10 +2,10 @@
 
 const express = require('express');
 const router = express.Router();
-const {
-    verifyGst,
-    getDuplicateGst,
-    toggleUserStatus,
+const { 
+    verifyGst, 
+    getDuplicateGst, 
+    toggleUserStatus, 
     deleteUser,
     getAllUsers,
     getAllProducts,
@@ -13,8 +13,10 @@ const {
     getPendingGstSellers,
     adminDeleteProduct,
     getDashboardStats,
-    getAllRequirements, // ✅ NEW
-    getAcceptedRequirements // ✅ NEW
+    getAllRequirements,
+    getAcceptedRequirements,
+    getAllConversations,
+    getConversationDetailsForAdmin
 } = require('../controllers/adminController');
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 
@@ -38,9 +40,13 @@ router.get('/pending-gst', getPendingGstSellers);
 router.get('/duplicate-gst', getDuplicateGst);
 router.put('/verify-gst/:sellerProfileId', verifyGst);
 
-// --- ✅ NEW: Requirement & Inquiry Management ---
+// --- Requirement & Inquiry Management ---
 router.get('/requirements', getAllRequirements);
 router.get('/accepted-requirements', getAcceptedRequirements);
+
+// --- Conversation Management ---
+router.get('/conversations', getAllConversations);
+router.get('/conversations/:convoId', getConversationDetailsForAdmin);
 
 
 module.exports = router;
