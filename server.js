@@ -30,9 +30,8 @@ const PORT = process.env.PORT || 5000;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-  'https://myindustryhouse.com',
-  "https://www.myindustryhouse.com",
-  'http://localhost:3000', // for local testing
+  'https://myindustryhouse.com','https://www.myindustryhouse.com',
+  //'http://localhost:3000', // for local testing
 ];
 
 const corsOptions = {
