@@ -9,9 +9,7 @@ exports.postRequirement = async (req, res) => {
         });
         await newRequirement.save();
         res.status(201).json(newRequirement);
-    } catch (error)
- 
-{
+    } catch (error) {
         console.error("Error posting requirement:", error);
         res.status(500).json({ message: 'Server Error while posting requirement.' });
     }

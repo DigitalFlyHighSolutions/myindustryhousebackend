@@ -2,10 +2,11 @@
 const SellerProfile = require('../models/SellerProfile');
 const User = require('../models/User');
 const Product = require('../models/Product');
-const Requirement = require('../models/Requirement'); // Import Requirement model
+const Requirement = require('../models/Requirement');
+const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 const { cloudinary } = require('../config/cloudinary');
 
-// ✅ NEW: Function to get all dashboard stats
 exports.getDashboardStats = async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
@@ -35,8 +36,6 @@ exports.getDashboardStats = async (req, res) => {
     }
 };
 
-
-// Sanitize user data to prevent crashes from old/incomplete records.
 exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.find().select('-password').lean();
@@ -163,7 +162,6 @@ exports.toggleUserStatus = async (req, res) => {
         user.status = user.status === 'active' ? 'suspended' : 'active';
         await user.save();
 
-        // ✅ ADDED: Emit force_logout event if user is suspended
         if (user.status === 'suspended') {
             const { io, userSockets } = req;
             const recipientSocketId = userSockets[userId];
@@ -199,7 +197,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-// ✅ NEW: Function to get all requirements for the admin
 exports.getAllRequirements = async (req, res) => {
     try {
         const requirements = await Requirement.find({})
@@ -212,7 +209,6 @@ exports.getAllRequirements = async (req, res) => {
     }
 };
 
-// ✅ NEW: Function to get requirements that sellers have contacted
 exports.getAcceptedRequirements = async (req, res) => {
     try {
         const requirements = await Requirement.find({ 'contactedSellers.0': { $exists: true } })
@@ -222,6 +218,44 @@ exports.getAcceptedRequirements = async (req, res) => {
         res.status(200).json(requirements);
     } catch (error) {
         console.error('Error fetching accepted requirements:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+exports.getAllConversations = async (req, res) => {
+    try {
+        const conversations = await Conversation.find({})
+            .populate('participants', 'name role') // Ensure role is populated here too
+            .populate('product', 'name')
+            .sort({ updatedAt: -1 });
+        res.status(200).json(conversations);
+    } catch (error) {
+        console.error('Error fetching all conversations for admin:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+exports.getConversationDetailsForAdmin = async (req, res) => {
+    try {
+        const { convoId } = req.params;
+        const conversation = await Conversation.findById(convoId)
+            .populate({
+                path: 'messages',
+                populate: { 
+                    path: 'sender', 
+                    // MODIFICATION: Fetch the sender's role for the admin view
+                    select: 'name role' 
+                },
+                options: { sort: { createdAt: 1 } }
+            });
+
+        if (!conversation) {
+            return res.status(404).json({ message: 'Conversation not found.' });
+        }
+        
+        res.status(200).json(conversation.messages);
+    } catch (err) {
+        console.error("Error fetching admin conversation details:", err);
         res.status(500).json({ message: 'Server Error' });
     }
 };

@@ -1,11 +1,15 @@
+// backend/server.js
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const http = require('http');
-const { Server } = require("socket.io");
+const { Server } = require('socket.io');
 const helmet = require('helmet');
 const morgan = require('morgan');
-require('dotenv').config(); // Load environment variables first
+const axios = require('axios');
 
 // --- Route Imports ---
 const authRoutes = require('./routes/authRoutes');
@@ -18,21 +22,28 @@ const sellerRoutes = require('./routes/sellerRoutes');
 const buyerRoutes = require('./routes/buyerRoutes');
 const requirementRoutes = require('./routes/requirementRoutes');
 const leadRoutes = require('./routes/leadRoutes');
+const verificationRoutes = require('./routes/verificationRoutes');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
+<<<<<<< Updated upstream
   'https://myindustryhouse.com', "https://www.myindustryhouse.com"
   // For local testing, uncomment:
   // 'http://localhost:3000'
+=======
+  'https://myindustryhouse.com',
+  "https://www.myindustryhouse.com",
+  'http://localhost:3000', // for local testing
+>>>>>>> Stashed changes
 ];
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // Allow mobile apps or server-to-server
+    if (!origin) return callback(null, true);
     if (!allowedOrigins.includes(origin)) {
       const msg = 'The CORS policy does not allow access from this Origin.';
       return callback(new Error(msg), false);
@@ -44,19 +55,53 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.use(cors(corsOptions));
-
 // --- Middleware ---
+app.use(cors(corsOptions));
 app.use(helmet());
 app.use(express.json());
-app.use(morgan('dev'));
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
 
 // --- Socket.IO Setup ---
-const io = new Server(server, {
-  cors: corsOptions
-});
+const io = new Server(server, { cors: corsOptions });
 
 let userSockets = {};
+let conversationHistory = {};
+
+// --- Predefined FAQ Answers ---
+const faqAnswers = {
+  "How to contact support?": `
+Here's how you can contact MyIndustryHouse support:
+
+• Email: digitalflyhighsolutions@gmail.com
+• Contact Form: https://myindustryhouse.com/contact
+• Phone: +91-9977264510
+`,
+
+  "How do I contact seller?": `
+To contact a seller:
+1. Go to the seller’s profile.
+2. Click “Contact Seller” or send a message directly.
+`,
+
+  "How to post a product?": `
+To post a product:
+1. Login to your account.
+2. Navigate to “Add Product”.
+3. Fill in the product details and submit.
+`,
+
+  "How to register?": `
+To register:
+1. Click on 'Register' on the homepage.
+2. Fill in the required information.
+3. Verify your email to complete registration.
+`
+  // Add more FAQs as needed
+};
+
+// --- Socket.IO Events ---
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
@@ -67,8 +112,46 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', (data) => {
     const recipientSocketId = userSockets[data.recipient];
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit('receive_message', data);
+    if (recipientSocketId) io.to(recipientSocketId).emit('receive_message', data);
+  });
+
+  socket.on('bot_message', async (userMessage) => {
+    console.log('🤖 Chatbot received:', userMessage);
+    if (!conversationHistory[socket.id]) conversationHistory[socket.id] = [];
+
+    // --- Check for predefined FAQ first ---
+    if (faqAnswers[userMessage]) {
+      const reply = faqAnswers[userMessage];
+      conversationHistory[socket.id].push({ role: 'assistant', text: reply });
+      return socket.emit('bot_reply', reply);
+    }
+
+    // --- Fallback to Gemini AI ---
+    try {
+      conversationHistory[socket.id].push({ role: 'user', text: userMessage });
+
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          contents: [
+            { role: 'user', parts: [{ text: userMessage }] },
+            { role: 'model', parts: [{ text: 'You are an intelligent and friendly assistant for MyIndustryHouse. Respond clearly, professionally, and helpfully.' }] },
+          ],
+        }
+      );
+
+      const reply =
+        response.data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "I'm not sure how to answer that right now.";
+
+      conversationHistory[socket.id].push({ role: 'assistant', text: reply });
+      socket.emit('bot_reply', reply);
+    } catch (err) {
+      console.error('❌ Chatbot Error:', err.message);
+      socket.emit(
+        'bot_reply',
+        'Sorry, something went wrong while fetching your answer. Please try again later.'
+      );
     }
   });
 
@@ -79,6 +162,7 @@ io.on('connection', (socket) => {
         break;
       }
     }
+    delete conversationHistory[socket.id];
     console.log('A user disconnected:', socket.id);
   });
 });
@@ -94,25 +178,26 @@ const connectDB = async () => {
   }
 };
 
-// --- API Routes ---
-app.get('/', (req, res) => res.send('🚀 My Industry House API is running!'));
+// --- Routes ---
+app.get('/', (req, res) => res.send('🚀 Backend is running!'));
 
-app.use((req, res, next) => {
+const attachSocketIO = (req, res, next) => {
   req.io = io;
   req.userSockets = userSockets;
   next();
-});
+};
 
+app.use('/api/admin', attachSocketIO, adminRoutes);
+app.use('/api', attachSocketIO, leadRoutes);
+app.use('/api/sellers', sellerRoutes);
+app.use('/api/buyers', buyerRoutes);
+app.use('/api/account', accountRoutes);
 app.use('/api', authRoutes);
 app.use('/api', userRoutes);
 app.use('/api', productRoutes);
 app.use('/api', messageRoutes);
-app.use('/api', requirementRoutes);
-app.use('/api', leadRoutes);
-app.use('/api/account', accountRoutes);
-app.use('/api/sellers', sellerRoutes);
-app.use('/api/buyers', buyerRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/requirements', requirementRoutes);
+app.use('/api', verificationRoutes);
 
 // --- Start Server ---
 const startServer = async () => {
