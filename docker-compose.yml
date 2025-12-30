@@ -1,0 +1,304 @@
+version: "3.8"
+
+services:
+
+  # ========================
+  # API GATEWAY (KRAKEND)
+  # ========================
+  krakend:
+    image: devopsfaith/krakend:2.6
+    restart: always
+    ports:
+      - "127.0.0.1:${KRAKEND_PORT}:8080"  
+    volumes:
+      - ./api-gateway/krakend.json:/etc/krakend/krakend.json
+    command: [ "run", "-c", "/etc/krakend/krakend.json" ]
+    networks:
+      - myindustry_network
+
+  # ========================
+  # AUTH SERVICE + DB
+  # ========================
+  auth-service:
+    restart: always
+    build: ./auth-service
+    container_name: mih-backend-auth-service
+    ports:
+      - "127.0.0.1:${AUTH_SERVICE_PORT}:5001"
+    environment:
+      DATABASE_URL: "${AUTH_DATABASE_URL}"
+      JWT_SECRET: "${AUTH_JWT_SECRET}"
+      EMAIL_HOST: "${AUTH_EMAIL_HOST}"
+      EMAIL_PORT: "${AUTH_EMAIL_PORT}"
+      EMAIL_USER: "${AUTH_EMAIL_USER}"
+      EMAIL_PASS: "${AUTH_EMAIL_PASS}"
+      FRONTEND_URL: "${FRONTEND_URL}"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    command: [ "sh", "-c", "node wait-for-db.js && npm start" ]
+    networks:
+      - myindustry_network
+
+  auth-db:
+    image: postgres:14-alpine
+    restart: always
+    container_name: mih-auth-db
+    environment:
+      POSTGRES_USER: "${AUTH_DB_USER}"
+      POSTGRES_PASSWORD: "${AUTH_DB_PASSWORD}"
+      POSTGRES_DB: "${AUTH_DB_NAME}"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USER} -d ${AUTH_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - myindustry_network
+
+  # ========================
+  # USER SERVICE + DB
+  # ========================
+  user-service:
+    restart: always
+    build: ./user-service
+    ports:
+      - "127.0.0.1:${USER_SERVICE_PORT}:5006"
+    environment:
+      DATABASE_URL: "${USER_DATABASE_URL}"
+    depends_on:
+      user-db:
+        condition: service_healthy
+    command: [ "sh", "-c", "node wait-for-db.js && npm start" ]
+    networks:
+      - myindustry_network
+
+  user-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${USER_DB_USER}"
+      POSTGRES_PASSWORD: "${USER_DB_PASSWORD}"
+      POSTGRES_DB: "${USER_DB_NAME}"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d ${USER_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - myindustry_network
+
+  # ========================
+  # SELLER SERVICE + DB
+  # ========================
+  seller-service:
+    restart: always
+    build:
+      context: ./seller-service
+    ports:
+      - "127.0.0.1:${SELLER_SERVICE_PORT}:5007"
+    environment:
+      DATABASE_URL: "${SELLER_DATABASE_URL}"
+      AWS_REGION: "${AWS_REGION}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_S3_BUCKET: "${AWS_S3_BUCKET}"
+    depends_on:
+      - seller-db
+    networks:
+      - myindustry_network
+
+
+  seller-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${SELLER_DB_USER}"
+      POSTGRES_PASSWORD: "${SELLER_DB_PASSWORD}"
+      POSTGRES_DB: "${SELLER_DB_NAME}"
+    volumes:
+      - seller_db_data:/var/lib/postgresql/data
+    networks:
+      - myindustry_network
+
+  # ========================
+  # PRODUCT SERVICE + DB
+  # ========================
+  product-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${PRODUCT_DB_USER}"
+      POSTGRES_PASSWORD: "${PRODUCT_DB_PASSWORD}"
+      POSTGRES_DB: "${PRODUCT_DB_NAME}"
+    volumes:
+      - product_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PRODUCT_DB_USER} -d ${PRODUCT_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - myindustry_network
+
+  product-service:
+    restart: always
+    build: ./product-service
+    ports:
+      - "127.0.0.1:${PRODUCT_SERVICE_PORT}:5002"
+    environment:
+      DATABASE_URL: "${PRODUCT_DATABASE_URL}"
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - myindustry_network
+
+  # ========================
+  # ADMIN SERVICE + DB
+  # ========================
+  admin-service:
+    restart: always
+    build: ./admin-service
+    ports:
+      - "127.0.0.1:${ADMIN_SERVICE_PORT}:5004"
+    environment:
+      DB_HOST: "${ADMIN_DB_HOST}"
+      DB_PORT: "${ADMIN_DB_PORT}"
+      DB_USER: "${ADMIN_DB_USER}"
+      DB_PASSWORD: "${ADMIN_DB_PASSWORD}"
+      DB_NAME: "${ADMIN_DB_NAME}"
+    depends_on:
+      - admin-db
+    networks:
+      - myindustry_network
+
+  admin-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${ADMIN_DB_USER}"
+      POSTGRES_PASSWORD: "${ADMIN_DB_PASSWORD}"
+      POSTGRES_DB: "${ADMIN_DB_NAME}"
+    volumes:
+      - admin_db_data:/var/lib/postgresql/data
+    networks:
+      - myindustry_network
+
+  # ========================
+  # LEAD SERVICE + DB
+  # ========================
+  lead-service:
+    restart: always
+    build: ./lead-service
+    ports:
+      - "127.0.0.1:${LEAD_SERVICE_PORT}:5005"
+    environment:
+      DB_HOST: "${LEAD_DB_HOST}"
+      DB_PORT: "${LEAD_DB_PORT}"
+      DB_USER: "${LEAD_DB_USER}"
+      DB_PASSWORD: "${LEAD_DB_PASSWORD}"
+      DB_NAME: "${LEAD_DB_NAME}"
+    depends_on:
+      - lead-db
+    networks:
+      - myindustry_network
+
+  lead-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${LEAD_DB_USER}"
+      POSTGRES_PASSWORD: "${LEAD_DB_PASSWORD}"
+      POSTGRES_DB: "${LEAD_DB_NAME}"
+    volumes:
+      - lead_db_data:/var/lib/postgresql/data
+    networks:
+      - myindustry_network
+
+  # ========================
+  # GST SERVICE + DB
+  # ========================
+  gst-service:
+    restart: always
+    build: ./gst-service
+    ports:
+      - "127.0.0.1:${GST_SERVICE_PORT}:5003"
+    environment:
+      DB_HOST: "${GST_DB_HOST}"
+      DB_PORT: "${GST_DB_PORT}"
+      DB_USER: "${GST_DB_USER}"
+      DB_PASSWORD: "${GST_DB_PASSWORD}"
+      DB_NAME: "${GST_DB_NAME}"
+    depends_on:
+      - gst-db
+    networks:
+      - myindustry_network
+
+  gst-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${GST_DB_USER}"
+      POSTGRES_PASSWORD: "${GST_DB_PASSWORD}"
+      POSTGRES_DB: "${GST_DB_NAME}"
+    volumes:
+      - gst_db_data:/var/lib/postgresql/data
+    networks:
+      - myindustry_network
+
+  # ========================
+  # CHAT SERVICE + DB
+  # ========================
+  chat-service:
+    restart: always
+    build: ./chat-service
+    ports:
+      - "127.0.0.1:${CHAT_SERVICE_PORT}:5008"
+    environment:
+      DB_HOST: "${CHAT_DB_HOST}"
+      DB_PORT: "${CHAT_DB_PORT}"
+      DB_USER: "${CHAT_DB_USER}"
+      DB_PASSWORD: "${CHAT_DB_PASSWORD}"
+      DB_NAME: "${CHAT_DB_NAME}"
+    depends_on:
+      - chat-db
+    networks:
+      - myindustry_network
+
+  chat-db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "${CHAT_DB_USER}"
+      POSTGRES_PASSWORD: "${CHAT_DB_PASSWORD}"
+      POSTGRES_DB: "${CHAT_DB_NAME}"
+    volumes:
+      - chat_db_data:/var/lib/postgresql/data
+    networks:
+      - myindustry_network
+
+# ========================
+# NETWORKS + VOLUMES
+# ========================
+networks:
+  myindustry_network:
+    driver: bridge
+
+volumes:
+  product_db_data:
+  auth_db_data:
+  user_db_data:
+  seller_db_data:
+  admin_db_data:
+  lead_db_data:
+  chat_db_data:
+  gst_db_data:

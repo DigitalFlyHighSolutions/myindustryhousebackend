@@ -1,0 +1,776 @@
+{
+  "$schema": "https://www.krakend.io/schema/v3.json",
+  "version": 3,
+  "port": 8080,
+  "cache_ttl": "3600s",
+  "timeout": "10s",
+  "extra_config": {
+  "router": {
+    "auto_options": true
+  },
+  "security/cors": {
+    "allow_origins": ["http://localhost:5173", "https://myindustryhouse.com/", "https://www.myindustryhouse.com/"],
+    "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": [
+      "Origin",
+      "Authorization",
+      "Content-Type",
+      "content-type",
+      "Accept",
+      "X-User-ID",
+      "x-user-id",
+      "x-user-role",
+      "X-User-Role",
+      "Access-Control-Request-Headers",
+      "Access-Control-Request-Method",
+      "Cache-Control",
+      "cache-control",
+      "Pragma",
+      "pragma"
+    ],
+    "expose_headers": ["Content-Length"],
+    "allow_credentials": true,
+    "max_age": "12h"
+  }
+},
+  "endpoints": [
+    {
+      "endpoint": "/admin/dashboard",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/admin/dashboard",
+          "host": ["http://admin-service:5004"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/admin/categories/main-categories",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/admin/categories/main-categories",
+          "host": ["http://admin-service:5004"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/admin/categories/main-categories",
+      "method": "POST",
+      "input_headers": ["Content-Type", "X-User-Id"],
+      "backend": [
+        {
+          "url_pattern": "/admin/categories/main-categories",
+          "host": ["http://admin-service:5004"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 403, 409]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/admin/categories/main-categories/{id}",
+      "method": "DELETE",
+      "input_headers": ["X-User-Id"],
+      "backend": [
+        {
+          "url_pattern": "/admin/categories/main-categories/{id}",
+          "method": "DELETE",
+          "host": ["http://admin-service:5004"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/admin/categories/main-categories/{id}/status",
+      "method": "PUT",
+      "input_headers": ["Content-Type", "X-User-Id"],
+      "backend": [
+        {
+          "url_pattern": "/admin/categories/main-categories/{id}/status",
+          "host": ["http://admin-service:5004"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 400, 403, 404]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/categories/main",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/categories/main",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/httpcache": {
+              "cache_ttl": "300s"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/auth/change-password",
+      "method": "PUT",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/auth/change-password",
+          "host": ["http://auth-service:5001"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 400, 401, 403, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/auth/login",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/auth/login",
+          "host": ["http://auth-service:5001"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/auth/register",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/auth/register",
+          "host": ["http://auth-service:5001"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/auth/forgot-password",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/auth/forgot-password",
+          "host": ["http://auth-service:5001"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/auth/reset-password/{token}",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/auth/reset-password/{token}",
+          "host": ["http://auth-service:5001"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/conversations/{userId}",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID", "x-user-id"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/conversations/{userId}",
+          "host": ["http://chat-service:5008"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/conversation/{convoId}",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID", "x-user-id"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/conversation/{convoId}",
+          "host": ["http://chat-service:5008"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/messages",
+      "method": "POST",
+      "input_headers": [
+        "X-User-ID",
+        "x-user-id",
+        "Content-Type",
+        "Authorization"
+      ],
+      "backend": [
+        {
+          "url_pattern": "/messages",
+          "host": ["http://chat-service:5008"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 401, 403, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/requirements",
+          "host": ["http://lead-service:5005"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements/{id}",
+      "method": "GET",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/requirements/{id}",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 401, 403, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements",
+      "method": "POST",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/leads/requirements",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [201, 400, 401, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements",
+      "method": "DELETE",
+      "input_headers": ["X-User-ID", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/leads/requirements",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 204, 401, 404, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/leads/stats",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/stats",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 401, 403, 404, 500]
+            }
+          }
+        }
+      ] 
+    },
+    {
+      "endpoint": "/upload/product-image",
+      "method": "POST",
+      "timeout": "60s",
+      "output_encoding": "no-op",
+      "input_headers": ["Content-Type", "X-User-ID", "Authorization"],
+      "extra_config": {
+        "github.com/devopsfaith/krakend/proxy": {
+          "preserve_body": true,
+          "disable_host_sanitize": true
+        }
+      },
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/products/upload-image",
+          "host": ["http://product-service:5002"]
+        }
+      ]
+    },
+    {
+  "endpoint": "/categories/main/{id}/sub-categories",
+  "method": "GET",
+  "output_encoding": "no-op",
+  "input_headers": ["X-User-ID", "Authorization"],
+  "backend": [
+    {
+      "encoding": "no-op",
+      "url_pattern": "/admin/categories/main/{id}/sub-categories",
+      "host": ["http://admin-service:5004"]
+    }
+  ]
+},
+    {
+      "endpoint": "/categories/main/{id}/sub-categories",
+      "method": "POST",
+      "input_headers": ["Content-Type", "X-User-ID"],
+      "backend": [
+        {
+          "url_pattern": "/admin/categories/main/{id}/sub-categories",
+          "host": ["http://admin-service:5004"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 409, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/leads/buy",
+      "method": "POST",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/leads/buy",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [201, 400, 401, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/products",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/products",
+          "host": ["http://product-service:5002"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements/{id}/close",
+      "method": "PUT",
+      "input_headers": ["x-user-id", "X-User-ID", "Authorization"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/requirements/{id}/close",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 400, 401, 403, 404, 409, 500],
+              "preserve_body": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements/me",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["x-user-id", "X-User-ID", "Authorization"],
+      "extra_config": {
+        "github.com/devopsfaith/krakend/proxy": {
+          "no_cache": true
+        }
+      },
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/requirements/me",
+          "host": ["http://lead-service:5005"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements/{id}",
+      "method": "PUT",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/leads/requirements/{id}",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 400, 401, 403, 404, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/requirements/{id}",
+      "method": "DELETE",
+      "input_headers": ["X-User-ID", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/leads/requirements/{id}",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [204, 401, 403, 404, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/leads/{id}/cancel",
+      "method": "PUT",
+      "input_headers": ["x-user-id"],
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/{id}/cancel",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 401, 404, 409, 500],
+              "preserve_body": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/products/{productId}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/products/{productId}",
+          "host": ["http://product-service:5002"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/products",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/seller/products",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 400, 401, 403, 404]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/products/stats",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/seller/products/stats",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "status_code": [200, 400, 401, 403, 404]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/onboarding-complete",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/onboarding-complete",
+          "host": ["http://seller-service:5007"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 404, 500]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/products",
+      "method": "POST",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/products",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 401, 403, 404]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/products/{productId}",
+      "method": "PUT",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/products/{productId}",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 401, 403, 404, 500]
+            }
+          }
+        }
+      ]
+    },
+{
+  "endpoint": "/leads/select",
+  "method": "PUT",
+  "input_headers": ["x-user-id", "Content-Type"],
+  "backend": [
+    {
+      "url_pattern": "/leads/select",
+      "host": ["http://lead-service:5005"],
+      "extra_config": {
+        "github.com/devopsfaith/krakend/proxy": {
+          "preserve_body": true,
+          "status_code": [200, 400, 401, 403, 404, 500]
+        }
+      }
+    }
+  ]
+},
+    {
+      "endpoint": "/products/{productId}",
+      "method": "DELETE",
+      "input_headers": ["X-User-ID", "Content-Type", "Authorization"],
+      "backend": [
+        {
+          "url_pattern": "/products/{productId}",
+          "host": ["http://product-service:5002"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "preserve_body": true,
+              "status_code": [200, 201, 400, 401, 403, 404]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/profile",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/profile",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/profile",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/profile",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/profile",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/profile",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/plans",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/plans",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/subscription",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/subscription",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/subscription",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/subscription",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/seller/{userId}/subscription",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/seller/{userId}/subscription",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/payment/{paymentId}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/payment/{paymentId}",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/payment",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/payment",
+          "host": ["http://seller-service:5007"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/users",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/users",
+          "host": ["http://user-service:5006"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/users/{id}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/users/{id}",
+          "host": ["http://user-service:5006"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/users",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/users",
+          "host": ["http://user-service:5006"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/users/{id}",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/users/{id}",
+          "host": ["http://user-service:5006"]
+        }
+      ]
+    },
+    {
+      "endpoint": "/users/{id}",
+      "method": "DELETE",
+      "backend": [
+        {
+          "url_pattern": "/users/{id}",
+          "method": "DELETE",
+          "host": ["http://user-service:5006"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "expect": [200, 204]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/leads/seller/contacted",
+      "method": "GET",
+      "output_encoding": "no-op",
+      "input_headers": ["X-User-ID", "Authorization"],
+      "backend": [
+        {
+          "encoding": "no-op",
+          "url_pattern": "/leads/seller/contacted",
+          "host": ["http://lead-service:5005"],
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "disable_host_sanitize": true,
+              "status_code": [200, 400, 401, 403, 404, 500]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
