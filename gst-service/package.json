@@ -1,0 +1,15 @@
+
+{
+  "name": "gst-service",
+  "version": "1.0.0",
+  "description": "GST Service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "knex": "^3.1.0",
+    "pg": "^8.16.3"
+  }
+}
