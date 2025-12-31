@@ -3,15 +3,24 @@ const app = express();
 const port = 5007;
 
 const sellerController = require('./controllers/sellerController');
-const upload = require('./middlewares/s3Upload'); // ✅ FIX HERE
+const upload = require('./middlewares/s3Upload');
+const auth = require('./middlewares/auth'); // 🔐 NEW
 
 app.use(express.json());
 
-// Seller Profiles
-app.get('/seller/:userId/profile', sellerController.getSellerProfile);
+/* =====================================================
+   Seller Profile
+   ===================================================== */
+
+app.get(
+  '/seller/profile',
+  auth,
+  sellerController.getSellerProfile
+);
 
 app.post(
-  '/seller/:userId/profile',
+  '/seller/profile',
+  auth,
   upload.fields([
     { name: 'companyLogo', maxCount: 1 },
     { name: 'gstCertificate', maxCount: 1 },
@@ -21,7 +30,8 @@ app.post(
 );
 
 app.put(
-  '/seller/:userId/profile',
+  '/seller/profile',
+  auth,
   upload.fields([
     { name: 'companyLogo', maxCount: 1 },
     { name: 'gstCertificate', maxCount: 1 },
@@ -30,23 +40,55 @@ app.put(
   sellerController.updateSellerProfile
 );
 
-// ✅ Onboarding complete
+/* =====================================================
+   Onboarding
+   ===================================================== */
+
 app.put(
-  '/seller/:userId/onboarding-complete',
+  '/seller/onboarding-complete',
+  auth,
   sellerController.markOnboardingComplete
 );
 
-// Plans
+/* =====================================================
+   Plans (Public)
+   ===================================================== */
+
 app.get('/plans', sellerController.getAllPlans);
 
-// Subscriptions
-app.get('/seller/:userId/subscription', sellerController.getSubscription);
-app.post('/seller/:userId/subscription', sellerController.createSubscription);
-app.put('/seller/:userId/subscription', sellerController.updateSubscription);
+/* =====================================================
+   Subscriptions
+   ===================================================== */
 
-// Payments
+app.get(
+  '/seller/subscription',
+  auth,
+  sellerController.getSubscription
+);
+
+app.post(
+  '/seller/subscription',
+  auth,
+  sellerController.createSubscription
+);
+
+app.put(
+  '/seller/subscription',
+  auth,
+  sellerController.updateSubscription
+);
+
+/* =====================================================
+   Payments
+   ===================================================== */
+
 app.get('/payment/:paymentId', sellerController.getPayment);
-app.post('/payment', sellerController.createPayment);
+
+app.post(
+  '/payment',
+  auth,
+  sellerController.createPayment
+);
 
 app.listen(port, () => {
   console.log(`✅ Seller service listening at http://localhost:${port}`);
