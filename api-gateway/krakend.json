@@ -9,7 +9,7 @@
     "auto_options": true
   },
   "security/cors": {
-    "allow_origins": ["http://localhost:5173", "https://myindustryhouse.com/", "https://www.myindustryhouse.com/"],
+    "allow_origins": ["http://localhost:5173", "https://myindustryhouse.com", "https://www.myindustryhouse.com"],
     "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allow_headers": [
       "Origin",
@@ -106,6 +106,7 @@
       "endpoint": "/categories/main",
       "method": "GET",
       "output_encoding": "no-op",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
           "encoding": "no-op",
@@ -377,6 +378,7 @@
       "endpoint": "/products",
       "method": "GET",
       "output_encoding": "no-op",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
           "encoding": "no-op",
@@ -477,6 +479,7 @@
     {
       "endpoint": "/products/{productId}",
       "method": "GET",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
           "url_pattern": "/products/{productId}",
@@ -521,12 +524,12 @@
       ]
     },
     {
-      "endpoint": "/seller/{userId}/onboarding-complete",
+      "endpoint": "/seller/onboarding-complete",
       "method": "PUT",
       "input_headers": ["Content-Type"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/onboarding-complete",
+          "url_pattern": "/seller/onboarding-complete",
           "host": ["http://seller-service:5007"],
           "extra_config": {
             "github.com/devopsfaith/krakend/proxy": {
@@ -606,31 +609,34 @@
       ]
     },
     {
-      "endpoint": "/seller/{userId}/profile",
+      "endpoint": "/seller/profile",
       "method": "GET",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/profile",
+          "url_pattern": "/seller/profile",
           "host": ["http://seller-service:5007"]
         }
       ]
     },
     {
-      "endpoint": "/seller/{userId}/profile",
+      "endpoint": "/seller/profile",
       "method": "POST",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/profile",
+          "url_pattern": "/seller/profile",
           "host": ["http://seller-service:5007"]
         }
       ]
     },
     {
-      "endpoint": "/seller/{userId}/profile",
+      "endpoint": "/seller/profile",
       "method": "PUT",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/profile",
+          "url_pattern": "/seller/profile",
           "host": ["http://seller-service:5007"]
         }
       ]
@@ -638,6 +644,7 @@
     {
       "endpoint": "/plans",
       "method": "GET",
+      "input_headers": ["Authorization", "X-User-ID"],
       "backend": [
         {
           "url_pattern": "/plans",
@@ -646,31 +653,34 @@
       ]
     },
     {
-      "endpoint": "/seller/{userId}/subscription",
+      "endpoint": "/seller/subscription",
       "method": "GET",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/subscription",
+          "url_pattern": "/seller/subscription",
           "host": ["http://seller-service:5007"]
         }
       ]
     },
     {
-      "endpoint": "/seller/{userId}/subscription",
+      "endpoint": "/seller/subscription",
       "method": "POST",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/subscription",
+          "url_pattern": "/seller/subscription",
           "host": ["http://seller-service:5007"]
         }
       ]
     },
     {
-      "endpoint": "/seller/{userId}/subscription",
+      "endpoint": "/seller/subscription",
       "method": "PUT",
+      "input_headers": ["Authorization", "X-User-ID", "x-user-id", "x-user-role"],
       "backend": [
         {
-          "url_pattern": "/seller/{userId}/subscription",
+          "url_pattern": "/seller/subscription",
           "host": ["http://seller-service:5007"]
         }
       ]
@@ -678,6 +688,7 @@
     {
       "endpoint": "/payment/{paymentId}",
       "method": "GET",
+      "input_headers": ["Authorization", "X-User-ID"],
       "backend": [
         {
           "url_pattern": "/payment/{paymentId}",
@@ -688,6 +699,7 @@
     {
       "endpoint": "/payment",
       "method": "POST",
+      "input_headers": ["Authorization", "X-User-ID"],
       "backend": [
         {
           "url_pattern": "/payment",
